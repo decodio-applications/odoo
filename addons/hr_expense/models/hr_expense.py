@@ -147,14 +147,14 @@ class HrExpense(models.Model):
 
     @api.model
     def get_empty_list_help(self, help_message):
-        if help_message and "oe_view_nocontent_smiling_face" not in help_message:
+        if help_message and "o_view_nocontent_smiling_face" not in help_message:
             use_mailgateway = self.env['ir.config_parameter'].sudo().get_param('hr_expense.use_mailgateway')
             alias_record = use_mailgateway and self.env.ref('hr_expense.mail_alias_expense') or False
             if alias_record and alias_record.alias_domain and alias_record.alias_name:
                 link = "<a id='o_mail_test' href='mailto:%(email)s?subject=Lunch%%20with%%20customer%%3A%%20%%2412.32'>%(email)s</a>" % {
                     'email': '%s@%s' % (alias_record.alias_name, alias_record.alias_domain)
                 }
-                return '<p class="oe_view_nocontent_smiling_face">%s</p><p class="oe_view_nocontent_alias">%s</p>' % (
+                return '<p class="o_view_nocontent_smiling_face">%s</p><p class="oe_view_nocontent_alias">%s</p>' % (
                     _('Add a new expense,'),
                     _('or send receipts by email to %s.') % (link),)
         return super(HrExpense, self).get_empty_list_help(help_message)
@@ -365,7 +365,7 @@ class HrExpense(models.Model):
             # get move line values
             move_line_values = move_line_values_by_expense.get(expense.id)
             move_line_dst = move_line_values[-1]
-            total_amount = abs(move_line_dst['debit'])
+            total_amount = move_line_dst['debit'] or -move_line_dst['credit']
             total_amount_currency = move_line_dst['amount_currency']
 
             # create one more move line, a counterline for the total on payable account
