@@ -361,7 +361,8 @@ class HolidaysAllocation(models.Model):
             values.update({'department_id': self.env['hr.employee'].browse(employee_id).department_id.id})
         holiday = super(HolidaysAllocation, self.with_context(mail_create_nolog=True, mail_create_nosubscribe=True)).create(values)
         holiday.add_follower(employee_id)
-        holiday.activity_update()
+        if not self._context.get('import_file'):
+            holiday.activity_update()
         return holiday
 
     @api.multi
@@ -543,7 +544,7 @@ class HolidaysAllocation(models.Model):
             return self.employee_id.parent_id.user_id
         elif self.department_id.manager_id.user_id:
             return self.department_id.manager_id.user_id
-        return self.env.user
+        return self.env['res.users']
 
     def activity_update(self):
         to_clean, to_do = self.env['hr.leave.allocation'], self.env['hr.leave.allocation']
@@ -553,12 +554,12 @@ class HolidaysAllocation(models.Model):
             elif allocation.state == 'confirm':
                 allocation.activity_schedule(
                     'hr_holidays.mail_act_leave_allocation_approval',
-                    user_id=allocation.sudo()._get_responsible_for_approval().id)
+                    user_id=allocation.sudo()._get_responsible_for_approval().id or self.env.user.id)
             elif allocation.state == 'validate1':
                 allocation.activity_feedback(['hr_holidays.mail_act_leave_allocation_approval'])
                 allocation.activity_schedule(
                     'hr_holidays.mail_act_leave_allocation_second_approval',
-                    user_id=allocation.sudo()._get_responsible_for_approval().id)
+                    user_id=allocation.sudo()._get_responsible_for_approval().id or self.env.user.id)
             elif allocation.state == 'validate':
                 to_do |= allocation
             elif allocation.state == 'refuse':

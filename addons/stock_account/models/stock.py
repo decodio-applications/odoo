@@ -89,7 +89,10 @@ class StockMoveLine(models.Model):
         if 'qty_done' in vals:
             moves_to_update = {}
             for move_line in self.filtered(lambda ml: ml.state == 'done' and (ml.move_id._is_in() or ml.move_id._is_out())):
-                moves_to_update[move_line.move_id] = vals['qty_done'] - move_line.qty_done
+                rounding = move_line.product_uom_id.rounding
+                qty_difference = float_round(vals['qty_done'] - move_line.qty_done, precision_rounding=rounding)
+                if not float_is_zero(qty_difference, precision_rounding=rounding):
+                    moves_to_update[move_line.move_id] = qty_difference
 
             for move_id, qty_difference in moves_to_update.items():
                 move_vals = {}
@@ -198,7 +201,7 @@ class StockMove(models.Model):
                     '|',
                         ('location_dest_id.company_id', '=', False),
                         '&',
-                            ('location_dest_id.usage', '=', 'inventory'),
+                            ('location_dest_id.usage', 'in', ['inventory', 'production']),
                             ('location_dest_id.company_id', '=', company_id or self.env.user.company_id.id),
         ]
         return domain
@@ -677,8 +680,8 @@ class StockMove(models.Model):
 
         location_from = self.location_id
         location_to = self.location_dest_id
-        company_from = self._is_out() and self.mapped('move_line_ids.location_id.company_id') or False
-        company_to = self._is_in() and self.mapped('move_line_ids.location_dest_id.company_id') or False
+        company_from = self.mapped('move_line_ids.location_id.company_id') if self._is_out() else False
+        company_to = self.mapped('move_line_ids.location_dest_id.company_id') if self._is_in() else False
 
         # Create Journal Entry for products arriving in the company; in case of routes making the link between several
         # warehouse of the same company, the transit location belongs to this company, so we don't need to create accounting entries
