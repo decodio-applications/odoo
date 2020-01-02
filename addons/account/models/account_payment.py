@@ -242,22 +242,32 @@ class account_abstract_payment(models.AbstractModel):
             invoices = self.invoice_ids
 
         # Get the payment currency
-        if not currency:
-            currency = self.currency_id or self.journal_id.currency_id or self.journal_id.company_id.currency_id or invoices and invoices[0].currency_id
+        payment_currency = currency
+        if not payment_currency:
+            payment_currency = self.currency_id or self.journal_id.currency_id or self.journal_id.company_id.currency_id or invoices and invoices[0].currency_id
 
         # Avoid currency rounding issues by summing the amounts according to the company_currency_id before
         invoice_datas = invoices.read_group(
             [('id', 'in', invoices.ids)],
-            ['currency_id', 'type', 'residual_signed'],
+            ['currency_id', 'type', 'residual_signed', 'residual_company_signed'],
             ['currency_id', 'type'], lazy=False)
         total = 0.0
         for invoice_data in invoice_datas:
-            amount_total = MAP_INVOICE_TYPE_PAYMENT_SIGN[invoice_data['type']] * invoice_data['residual_signed']
-            payment_currency = self.env['res.currency'].browse(invoice_data['currency_id'][0])
-            if payment_currency == currency:
+            sign = MAP_INVOICE_TYPE_PAYMENT_SIGN[invoice_data['type']]
+            amount_total = sign * invoice_data['residual_signed']
+            amount_total_company_signed = sign * invoice_data['residual_company_signed']
+            invoice_currency = self.env['res.currency'].browse(invoice_data['currency_id'][0])
+            if payment_currency == invoice_currency:
                 total += amount_total
             else:
-                total += payment_currency._convert(amount_total, currency, self.env.user.company_id, self.payment_date or fields.Date.today())
+                # Here there is no chance we will reconcile on amount_currency
+                # Hence, we need to compute with the amount in company currency as the base
+                total += self.journal_id.company_id.currency_id._convert(
+                    amount_total_company_signed,
+                    payment_currency,
+                    self.env.user.company_id,
+                    self.payment_date or fields.Date.today()
+                )
         return total
 
 
@@ -317,7 +327,10 @@ class account_register_payments(models.TransientModel):
         results = {}
         # Create a dict dispatching invoices according to their commercial_partner_id, account_id, invoice_type and partner_bank_id
         for inv in self.invoice_ids:
-            partner_id = inv.commercial_partner_id.id
+            if inv.partner_id.type == 'invoice':
+                partner_id = inv.partner_id.id
+            else:
+                partner_id = inv.commercial_partner_id.id
             account_id = inv.account_id.id
             invoice_type = MAP_INVOICE_TYPE_PARTNER_TYPE[inv.type]
             recipient_account =  inv.partner_bank_id
@@ -340,6 +353,12 @@ class account_register_payments(models.TransientModel):
         pmt_communication = self.show_communication_field and self.communication \
                             or self.group_invoices and ' '.join([inv.reference or inv.number for inv in invoices]) \
                             or invoices[0].reference # in this case, invoices contains only one element, since group_invoices is False
+
+        if invoices[0].partner_id.type == 'invoice':
+            partner_id = invoices[0].partner_id
+        else:
+            partner_id = invoices[0].commercial_partner_id
+
         values = {
             'journal_id': self.journal_id.id,
             'payment_method_id': self.payment_method_id.id,
@@ -349,7 +368,7 @@ class account_register_payments(models.TransientModel):
             'payment_type': payment_type,
             'amount': abs(amount),
             'currency_id': self.currency_id.id,
-            'partner_id': invoices[0].commercial_partner_id.id,
+            'partner_id': partner_id.id,
             'partner_type': MAP_INVOICE_TYPE_PARTNER_TYPE[invoices[0].type],
             'partner_bank_account_id': bank_account.id,
             'multi': False,

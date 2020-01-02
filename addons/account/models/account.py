@@ -541,7 +541,7 @@ class AccountJournal(models.Model):
         for journal in self:
             if journal.refund_sequence_id and journal.refund_sequence and journal.refund_sequence_number_next:
                 sequence = journal.refund_sequence_id._get_current_sequence()
-                sequence.number_next = journal.refund_sequence_number_next
+                sequence.sudo().number_next = journal.refund_sequence_number_next
 
     @api.one
     @api.constrains('currency_id', 'default_credit_account_id', 'default_debit_account_id')
@@ -992,6 +992,8 @@ class AccountTax(models.Model):
     def onchange_amount_type(self):
         if self.amount_type is not 'group':
             self.children_tax_ids = [(5,)]
+        if self.amount_type == 'group':
+            self.description = None
 
     @api.onchange('account_id')
     def onchange_account_id(self):
