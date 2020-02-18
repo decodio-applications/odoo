@@ -68,7 +68,7 @@
 # Felix Yuen <fyu@odoo.com>, 2019
 # Jeffery CHEN Fan <jeffery9@gmail.com>, 2019
 # Jerry Pan <panjianyu@inspur.com>, 2019
-# liAnGjiA <liangjia@qq.com>, 2019
+# liAnGjiA <liangjia@qq.com>, 2020
 # 
 msgid ""
 msgstr ""
@@ -76,7 +76,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2019-12-10 14:44+0000\n"
 "PO-Revision-Date: 2018-08-24 09:14+0000\n"
-"Last-Translator: liAnGjiA <liangjia@qq.com>, 2019\n"
+"Last-Translator: liAnGjiA <liangjia@qq.com>, 2020\n"
 "Language-Team: Chinese (China) (https://www.transifex.com/odoo/teams/41243/zh_CN/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -11578,7 +11578,7 @@ msgstr "公司属性"
 #. module: base
 #: model:ir.model.fields,field_description:base.field_res_company__company_registry
 msgid "Company Registry"
-msgstr "公司注册"
+msgstr "营业执照"
 
 #. module: base
 #: model:ir.model.fields,field_description:base.field_res_company__report_header
@@ -18289,7 +18289,7 @@ msgstr "消息与社交"
 msgid ""
 "Methods that start with `get_default_` are deprecated. Override `get_values`"
 " instead(Method %s)"
-msgstr "以\"get_default_\"开头的方法已被弃用。使用“get_values”覆盖（方法 %s）"
+msgstr "以 `get_default_` 开头的方法已被弃用。使用 `get_values` 代替(方法 %s)"
 
 #. module: base
 #: code:addons/base/models/res_config.py:605
@@ -18297,7 +18297,7 @@ msgstr "以\"get_default_\"开头的方法已被弃用。使用“get_values”�
 msgid ""
 "Methods that start with `set_` are deprecated. Override `set_values` instead"
 " (Method %s)"
-msgstr "以\"set_\"开头的方法已被弃用。使用“set_values”覆盖（方法 %s）"
+msgstr "以 `set_` 开头的方法已被弃用。 使用 `set_values` 代替 (方法 %s)"
 
 #. module: base
 #: model:ir.module.module,summary:base.module_l10n_mx_edi
@@ -24687,7 +24687,7 @@ msgstr "在线开发工具"
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_studio_customization
 msgid "Studio customizations"
-msgstr ""
+msgstr "Studio 定制"
 
 #. module: base
 #: model_terms:ir.ui.view,arch_db:base.edit_menu_access
@@ -26600,7 +26600,7 @@ msgstr "服务器繁忙，模块操作此时无法完成，请稍后再试。"
 #, python-format
 msgid ""
 "The server refused the sender address (%(email_from)s) with error %(repl)s"
-msgstr "服务器无法发送地址 (%(email_from)s)，错误 (%(repl)s)"
+msgstr "服务器发不到这个邮箱地址 (%(email_from)s) 错误信息是 %(repl)s"
 
 #. module: base
 #: code:addons/base/models/ir_mail_server.py:190

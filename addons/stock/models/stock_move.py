@@ -130,7 +130,10 @@ class StockMove(models.Model):
     inventory_id = fields.Many2one('stock.inventory', 'Inventory')
     move_line_ids = fields.One2many('stock.move.line', 'move_id')
     move_line_nosuggest_ids = fields.One2many('stock.move.line', 'move_id', domain=[('product_qty', '=', 0.0)])
-    origin_returned_move_id = fields.Many2one('stock.move', 'Origin return move', copy=False, help='Move that created the return move')
+    origin_returned_move_id = fields.Many2one(
+        'stock.move', 'Origin return move',
+        copy=False, index=True,
+        help='Move that created the return move')
     returned_move_ids = fields.One2many('stock.move', 'origin_returned_move_id', 'All returned moves', help='Optional: all returned moves created from this move')
     reserved_availability = fields.Float(
         'Quantity Reserved', compute='_compute_reserved_availability',
@@ -1232,7 +1235,9 @@ class StockMove(models.Model):
 
     def _recompute_state(self):
         for move in self:
-            if move.reserved_availability == move.product_uom_qty:
+            if move.state in ('cancel', 'done', 'draft'):
+                continue
+            elif move.reserved_availability == move.product_uom_qty:
                 move.state = 'assigned'
             elif move.reserved_availability and move.reserved_availability <= move.product_uom_qty:
                 move.state = 'partially_available'

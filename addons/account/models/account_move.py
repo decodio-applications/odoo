@@ -57,9 +57,10 @@ class AccountMove(models.Model):
             total_reconciled = 0.0
             for line in move.line_ids:
                 if line.account_id.user_type_id.type in ('receivable', 'payable'):
-                    amount = abs(line.debit - line.credit)
+                    amount = abs(line.balance)
                     total_amount += amount
             precision_currency = move.currency_id or move.company_id.currency_id
+
             if float_is_zero(total_amount, precision_rounding=precision_currency.rounding):
                 move.matched_percentage = 1.0
             else:
@@ -67,7 +68,7 @@ class AccountMove(models.Model):
                     if line.account_id.user_type_id.type in ('receivable', 'payable'):
                         for partial_line in (line.matched_debit_ids + line.matched_credit_ids):
                             total_reconciled += partial_line.amount
-                move.matched_percentage = total_reconciled / total_amount
+                move.matched_percentage = precision_currency.round(total_reconciled) / precision_currency.round(total_amount)
 
     @api.one
     @api.depends('company_id')
@@ -921,6 +922,14 @@ class AccountMoveLine(models.Model):
                 currency = credit_move.currency_id.id
                 amount_reconcile_currency = temp_amount_residual_currency
                 amount_reconcile = temp_amount_residual
+            elif bool(debit_move.currency_id) != bool(credit_move.currency_id):
+                # If only one of debit_move or credit_move has a secondary currency, also record the converted amount
+                # in that secondary currency in the partial reconciliation. That allows the exchange difference entry
+                # to be created, in case it is needed. It also allows to compute the amount residual in foreign currency.
+                currency = debit_move.currency_id or credit_move.currency_id
+                currency_date = debit_move.currency_id and credit_move.date or debit_move.date
+                amount_reconcile_currency = company_currency._convert(amount_reconcile, currency, debit_move.company_id, currency_date)
+                currency = currency.id
 
             if cash_basis:
                 tmp_set = debit_move | credit_move
@@ -1700,7 +1709,7 @@ class AccountPartialReconcile(models.Model):
                                 'move_id': newly_created_move.id,
                                 'partner_id': line.partner_id.id,
                             })
-                            if line.account_id.reconcile:
+                            if line.account_id.reconcile and not line.reconciled:
                                 #setting the account to allow reconciliation will help to fix rounding errors
                                 to_clear_aml |= line
                                 to_clear_aml.reconcile()
